@@ -14,7 +14,7 @@ var rec=null;document.querySelectorAll('script[type="application/ld+json"]').for
 if(rec){['review','aggregateRating','video','author','nutrition','publisher','comment'].forEach(function(k){delete rec[k];});}
 var m=document.querySelector('meta[property="og:image"]');
 var d={u:location.href.split('#')[0],ld:rec?[JSON.stringify(rec)]:[],t:rec?'':document.body.innerText.slice(0,8000),i:m?m.content:null};
-completion('${origin}/recipes/import?page='+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(d))))));`;
+completion('${origin}/i/'+btoa(unescape(encodeURIComponent(JSON.stringify(d)))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,''));`;
 }
 
 export default function SettingsPage() {

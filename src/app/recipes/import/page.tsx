@@ -91,7 +91,8 @@ function ImportInner() {
       try {
         let raw: string;
         try {
-          const b64 = payload.replace(/-/g, "+").replace(/_/g, "/").replace(/\s/g, "+");
+          let b64 = payload.replace(/-/g, "+").replace(/_/g, "/").replace(/\s/g, "+");
+          while (b64.length % 4) b64 += "=";
           raw = decodeURIComponent(escape(atob(b64)));
         } catch {
           throw new Error("The shortcut sent incomplete data. Update the shortcut script (Settings → Copy shortcut script).");

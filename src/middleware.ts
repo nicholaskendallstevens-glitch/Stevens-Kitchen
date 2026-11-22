@@ -32,6 +32,13 @@ export async function middleware(request: NextRequest) {
     .filter(Boolean);
   const ok = data.user && (!allowed.length || allowed.includes((data.user.email ?? "").toLowerCase()));
 
+  // shortcut payload while signed out: keep it through the login page
+  if (!ok && path.startsWith("/i/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = `?page=${encodeURIComponent(path.slice(3))}`;
+    return NextResponse.redirect(url);
+  }
   if (!ok && !isPublic) {
     if (path.startsWith("/api/")) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const url = request.nextUrl.clone();
