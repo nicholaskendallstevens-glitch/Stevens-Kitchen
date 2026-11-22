@@ -50,14 +50,18 @@ gh repo create stevens-kitchen --private --source=. --push
 - In **Safari** die Vercel-Adresse öffnen → Teilen → **Zum Home-Bildschirm**. Die App startet danach im Vollbild mit eigenem Icon.
 - Einmal anmelden, danach bleibt die Anmeldung bestehen.
 
-### 5. Rezepte direkt aus dem Teilen-Menü speichern (optional, sehr praktisch)
-Kurzbefehle-App → neuer Kurzbefehl:
-1. Bearbeiten → **Im Share-Sheet anzeigen** einschalten, Eingabe: *URLs*.
-2. Aktion **URL**: `https://DEINE-APP.vercel.app/recipes/import?url=` und dahinter die Variable *Kurzbefehleingabe* einsetzen.
-3. Aktion **URLs öffnen**.
-4. Name: „Zu Stevens Kitchen“.
+### 5. Kurzbefehl: Rezepte direkt aus Safari speichern (funktioniert auf jeder Seite)
+Manche Foodblogs (z.B. natashaskitchen.com) blockieren Server mit Bot-Schutz („The site blocks apps…“). Dieser Kurzbefehl umgeht das ehrlich: Er nimmt die Seite, die du in Safari schon offen hast.
 
-Danach in Safari, Instagram usw. auf **Teilen → Zu Stevens Kitchen** tippen: Das Rezept wird importiert und erscheint zum Prüfen.
+1. Einmalig: **Einstellungen → Apps → Kurzbefehle → Erweitert → „Skripte ausführen erlauben“** einschalten.
+2. In der App: **Settings → „Copy shortcut script“** tippen (kopiert das Skript mit eurer Adresse).
+3. App **Kurzbefehle** → **+** → Name „Zu Stevens Kitchen“.
+4. Unten **ⓘ → Im Share-Sheet anzeigen** einschalten; bei „Empfängt“ nur **Safari-Webseiten** lassen.
+5. Aktion **„JavaScript auf Webseite ausführen“** hinzufügen → den Beispielcode löschen → kopiertes Skript einfügen.
+6. Aktion **„URLs öffnen“** hinzufügen (Eingabe: Ergebnis von JavaScript) → **Fertig**.
+7. Einmalig in **Safari** die App-Adresse öffnen und anmelden (Safari und Homescreen-App haben getrennte Logins).
+
+Danach: Rezept in Safari öffnen → **Teilen → Zu Stevens Kitchen** → Rezept erscheint zum Prüfen & Speichern. Beim ersten Mal fragt iOS, ob der Kurzbefehl auf die Seite zugreifen darf → „Immer erlauben“.
 
 ### 6. KI-Import (Foto, Text, Seiten ohne Rezeptdaten, Übersetzung)
 - Auf [console.anthropic.com](https://console.anthropic.com) einen API-Key erstellen und ein kleines Guthaben laden (5 USD reichen sehr lange).

@@ -11,10 +11,52 @@ export const maxDuration = 60;
 type Body =
   | { mode: "url"; url: string; translate?: boolean }
   | { mode: "text"; text: string; translate?: boolean }
-  | { mode: "image"; images: { media_type: string; data: string }[]; translate?: boolean };
+  | { mode: "image"; images: { media_type: string; data: string }[]; translate?: boolean }
+  // sent by the iOS Safari share-sheet shortcut: the page you already have open
+  | { mode: "page"; url: string; ld?: string[]; text?: string; image?: string | null; translate?: boolean };
 
-const UA =
-  "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+const BROWSERS: Record<string, string>[] = [
+  {
+    "user-agent":
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "sec-ch-ua": '"Chromium";v="131", "Google Chrome";v="131", "Not_A Brand";v="24"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"macOS"',
+  },
+  {
+    "user-agent":
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+  },
+];
+
+async function fetchPage(url: string): Promise<string> {
+  let status = 0;
+  for (const b of BROWSERS) {
+    const res = await fetch(url, {
+      headers: {
+        ...b,
+        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "accept-language": "en-GB,en;q=0.9,de-CH;q=0.8,de;q=0.7",
+        "cache-control": "no-cache",
+        "upgrade-insecure-requests": "1",
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": "none",
+        "sec-fetch-user": "?1",
+      },
+      redirect: "follow",
+      signal: AbortSignal.timeout(15000),
+    });
+    if (res.ok) return await res.text();
+    status = res.status;
+    if (![403, 406, 429, 503].includes(status)) break;
+  }
+  if ([403, 406, 429, 503].includes(status))
+    throw new Error(
+      "BLOCKED: This site blocks apps from reading it. Open the recipe in Safari and use Share → “Zu Stevens Kitchen” — that always works. Or copy the text into the Text tab.",
+    );
+  throw new Error(`The site answered ${status}. Check the link or copy the recipe text instead.`);
+}
 
 export async function POST(req: Request) {
   const { sb, user } = await requireUser();
@@ -39,13 +81,7 @@ export async function POST(req: Request) {
       const url = new URL(body.url.trim());
       if (!/^https?:$/.test(url.protocol)) throw new Error("Only http(s) links are supported");
       source = url.toString();
-      const res = await fetch(source, {
-        headers: { "user-agent": UA, accept: "text/html,application/xhtml+xml", "accept-language": "de-CH,de;q=0.9,en;q=0.8" },
-        redirect: "follow",
-        signal: AbortSignal.timeout(15000),
-      });
-      if (!res.ok) throw new Error(`The site answered ${res.status}. Try copying the recipe text instead.`);
-      const html = await res.text();
+      const html = await fetchPage(source);
       const structured = extractJsonLdRecipe(html);
       if (structured && structured.ingredientLines.length) {
         scraped = structured;
@@ -58,6 +94,21 @@ export async function POST(req: Request) {
         scraped = await recipeFromPageText(htmlToText(html), source, translate);
         const meta = extractMeta(html);
         scraped.image_url = meta.image;
+      }
+    } else if (body.mode === "page") {
+      source = body.url || null;
+      const scripts = (body.ld ?? []).map((j) => `<script type="application/ld+json">${j}</script>`).join("\n");
+      const structured = scripts ? extractJsonLdRecipe(scripts) : null;
+      if (structured && structured.ingredientLines.length) {
+        scraped = structured;
+        if (!scraped.image_url) scraped.image_url = body.image ?? null;
+        if (translate) scraped = await translateRecipe(scraped);
+      } else {
+        if (!aiEnabled() || !body.text)
+          throw new Error("This page has no structured recipe data. Add an ANTHROPIC_API_KEY to enable AI import.");
+        method = "ai";
+        scraped = await recipeFromPageText(body.text.slice(0, 30000), source ?? "", translate);
+        scraped.image_url = body.image ?? null;
       }
     } else if (body.mode === "text") {
       if (!aiEnabled()) throw new Error("Text import needs an ANTHROPIC_API_KEY.");

@@ -63,7 +63,7 @@ function ImportInner() {
         }
         const res = await fetch("/api/import", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
         const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "Import failed");
+        if (!res.ok) throw new Error((json.error ?? "Import failed").replace(/^BLOCKED: /, ""));
         setDraft(json.draft);
         setMethod(json.method);
         window.scrollTo({ top: 0 });
@@ -76,7 +76,41 @@ function ImportInner() {
     [url, text, files, translate],
   );
 
-  // opened from the iOS share sheet shortcut: /recipes/import?url=…
+  // opened from the Safari share-sheet shortcut with the page content: /recipes/import#page=<base64 json>
+  useEffect(() => {
+    const h = window.location.hash;
+    if (!h.startsWith("#page=") || autoRan.current) return;
+    autoRan.current = true;
+    history.replaceState(null, "", window.location.pathname);
+    (async () => {
+      setBusy(true);
+      setError(null);
+      try {
+        const raw = decodeURIComponent(escape(atob(decodeURIComponent(h.slice(6)).replace(/-/g, "+").replace(/_/g, "/"))));
+        const p = JSON.parse(raw) as { u: string; ld?: string[]; t?: string; i?: string | null };
+        setUrl(p.u ?? "");
+        const res = await fetch("/api/import", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ mode: "page", url: p.u, ld: p.ld ?? [], text: p.t ?? "", image: p.i ?? null }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? "Import failed");
+        if (p.u) {
+          const { data: dup } = await supabase().from("recipes").select("id, title").eq("source_url", p.u).maybeSingle();
+          if (dup) setDuplicate(dup);
+        }
+        setDraft(json.draft);
+        setMethod(json.method);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Import failed");
+      } finally {
+        setBusy(false);
+      }
+    })();
+  }, []);
+
+  // opened from a link-only shortcut: /recipes/import?url=…
   useEffect(() => {
     const u = params.get("url");
     if (u && !autoRan.current) {

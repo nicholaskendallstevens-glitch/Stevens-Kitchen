@@ -8,6 +8,13 @@ import { CATEGORY_EMOJI, CATEGORY_LABELS, type Category, type Settings, type Sto
 import { ErrorNote, Header, Loading, Page, Stepper, Toast } from "@/components/ui";
 import { IconChevronDown, IconChevronUp, IconX } from "@/components/icons";
 
+function shortcutScript(origin: string) {
+  return `var ld = Array.from(document.querySelectorAll('script[type="application/ld+json"]')).map(function (s) { return s.textContent; }).filter(function (x) { return x.indexOf('Recipe') > -1; });
+var m = document.querySelector('meta[property="og:image"]');
+var d = { u: location.href.split('#')[0], ld: ld, t: ld.length ? '' : document.body.innerText.slice(0, 15000), i: m ? m.content : null };
+completion('${origin}/recipes/import#page=' + btoa(unescape(encodeURIComponent(JSON.stringify(d)))));`;
+}
+
 export default function SettingsPage() {
   const [s, setS] = useState<Settings | null>(null);
   const [staples, setStaples] = useState<{ id: string; name: string }[]>([]);
@@ -156,10 +163,18 @@ export default function SettingsPage() {
           <b>Home screen:</b> open this site in Safari → Share → <i>Add to Home Screen</i>. It opens full-screen like an app.
         </p>
         <p>
-          <b>Save from any app:</b> make a Shortcut that receives URLs from the Share Sheet and opens{" "}
-          <code className="rounded bg-paper px-1 text-xs">{typeof window !== "undefined" ? window.location.origin : ""}/recipes/import?url=[Shortcut Input]</code>.
-          The README has the step-by-step.
+          <b>Save from Safari (works on every site):</b> a Shortcut that sends the page you have open to the app. Copy the script below and
+          follow the README (“Kurzbefehl”).
         </p>
+        <button
+          className="btn btn-soft w-full text-sm"
+          onClick={async () => {
+            await navigator.clipboard.writeText(shortcutScript(window.location.origin));
+            setToast("Shortcut script copied");
+          }}
+        >
+          Copy shortcut script
+        </button>
         <p>
           <b>AI import (photo, text, translation):</b>{" "}
           {ai === null ? "…" : ai ? <span className="font-semibold text-herb">on</span> : <span className="font-semibold text-tomato">off — add ANTHROPIC_API_KEY in Vercel</span>}
