@@ -128,6 +128,11 @@ begin
   end loop;
 end $$;
 
+-- Newer Supabase projects don't auto-grant table access to API roles
+grant usage on schema public to authenticated, anon;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+alter default privileges in schema public grant select, insert, update, delete on tables to authenticated;
+
 -- ---------------------------------------------------------------------------
 -- Realtime: live sync of the shopping list and plan between both phones
 -- ---------------------------------------------------------------------------
