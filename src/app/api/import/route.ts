@@ -13,7 +13,8 @@ type Body =
   | { mode: "text"; text: string; translate?: boolean }
   | { mode: "image"; images: { media_type: string; data: string }[]; translate?: boolean }
   // sent by the iOS Safari share-sheet shortcut: the page you already have open
-  | { mode: "page"; url: string; ld?: string[]; text?: string; image?: string | null; translate?: boolean };
+  | { mode: "page"; url: string; ld?: string[]; text?: string; image?: string | null; translate?: boolean }
+  | { mode: "stash"; id: string; translate?: boolean };
 
 const BROWSERS: Record<string, string>[] = [
   {
@@ -69,7 +70,16 @@ export async function POST(req: Request) {
   const { sb, user } = await requireUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = (await req.json()) as Body;
+  let body = (await req.json()) as Body;
+  if (body.mode === "stash") {
+    const { data: row } = await sb.from("import_stash").select("payload").eq("id", body.id).maybeSingle();
+    // tidy up this entry and anything older than a day
+    await sb.from("import_stash").delete().eq("id", body.id);
+    await sb.from("import_stash").delete().lt("created_at", new Date(Date.now() - 86400000).toISOString());
+    if (!row) return NextResponse.json({ error: "The shortcut data has expired — share the recipe again." }, { status: 422 });
+    const p = row.payload as { u?: string; ld?: string[]; t?: string; i?: string | null };
+    body = { mode: "page", url: p.u ?? "", ld: p.ld ?? [], text: p.t ?? "", image: p.i ?? null, translate: body.translate };
+  }
   const translate = Boolean(body.translate) && aiEnabled();
 
   const [{ data: settings }, { data: ov }] = await Promise.all([

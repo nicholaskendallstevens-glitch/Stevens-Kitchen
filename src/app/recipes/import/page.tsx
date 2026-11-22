@@ -89,25 +89,35 @@ function ImportInner() {
       setError(null);
       setDraft(null);
       try {
-        let raw: string;
-        try {
-          let b64 = payload.replace(/-/g, "+").replace(/_/g, "/").replace(/\s/g, "+");
-          while (b64.length % 4) b64 += "=";
-          raw = decodeURIComponent(escape(atob(b64)));
-        } catch {
-          throw new Error("The shortcut sent incomplete data. Update the shortcut script (Settings → Copy shortcut script).");
+        let reqBody: unknown;
+        let p: { u?: string } = {};
+        if (/^[A-Za-z0-9-]{8,64}$/.test(payload)) {
+          // short id: the shortcut already uploaded the data
+          reqBody = { mode: "stash", id: payload };
+        } else {
+          let raw: string;
+          try {
+            let b64 = payload.replace(/-/g, "+").replace(/_/g, "/").replace(/\s/g, "+");
+            while (b64.length % 4) b64 += "=";
+            raw = decodeURIComponent(escape(atob(b64)));
+          } catch {
+            throw new Error("The shortcut sent incomplete data. Update the shortcut script (Settings → Copy shortcut script).");
+          }
+          const d = JSON.parse(raw) as { u: string; ld?: string[]; t?: string; i?: string | null };
+          p = d;
+          reqBody = { mode: "page", url: d.u, ld: d.ld ?? [], text: d.t ?? "", image: d.i ?? null };
         }
-        const p = JSON.parse(raw) as { u: string; ld?: string[]; t?: string; i?: string | null };
-        setUrl(p.u ?? "");
         const res = await fetch("/api/import", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ mode: "page", url: p.u, ld: p.ld ?? [], text: p.t ?? "", image: p.i ?? null }),
+          body: JSON.stringify(reqBody),
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? "Import failed");
-        if (p.u) {
-          const { data: dup } = await supabase().from("recipes").select("id, title").eq("source_url", p.u).maybeSingle();
+        const src = p.u ?? json.draft?.source_url;
+        if (src) setUrl(src);
+        if (src) {
+          const { data: dup } = await supabase().from("recipes").select("id, title").eq("source_url", src).maybeSingle();
           if (dup) setDuplicate(dup);
         }
         setDraft(json.draft);

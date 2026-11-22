@@ -171,3 +171,21 @@ create policy "household delete" on storage.objects
 create or replace function public.keepalive() returns int
 language sql security definer as $$ select 1 $$;
 grant execute on function public.keepalive() to anon;
+
+-- ---------------------------------------------------------------------------
+-- Drop-box for the Safari share-sheet shortcut (anonymous insert, signed-in read)
+-- ---------------------------------------------------------------------------
+create table if not exists public.import_stash (
+  id         text primary key check (char_length(id) between 8 and 64),
+  payload    jsonb not null,
+  created_at timestamptz not null default now()
+);
+alter table public.import_stash enable row level security;
+grant insert on public.import_stash to anon, authenticated;
+grant select, delete on public.import_stash to authenticated;
+drop policy if exists stash_insert on public.import_stash;
+create policy stash_insert on public.import_stash for insert to anon, authenticated with check (true);
+drop policy if exists stash_read on public.import_stash;
+create policy stash_read on public.import_stash for select to authenticated using (true);
+drop policy if exists stash_delete on public.import_stash;
+create policy stash_delete on public.import_stash for delete to authenticated using (true);

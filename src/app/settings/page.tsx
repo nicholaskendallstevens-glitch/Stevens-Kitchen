@@ -14,7 +14,8 @@ var rec=null;document.querySelectorAll('script[type="application/ld+json"]').for
 if(rec){['review','aggregateRating','video','author','nutrition','publisher','comment'].forEach(function(k){delete rec[k];});}
 var m=document.querySelector('meta[property="og:image"]');
 var d={u:location.href.split('#')[0],ld:rec?[JSON.stringify(rec)]:[],t:rec?'':document.body.innerText.slice(0,8000),i:m?m.content:null};
-completion('${origin}/i/'+btoa(unescape(encodeURIComponent(JSON.stringify(d)))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,''));`;
+var id=(self.crypto&&crypto.randomUUID)?crypto.randomUUID():(Date.now().toString(16)+Math.random().toString(16).slice(2));
+fetch('${origin}/api/stash',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({id:id,d:d})}).then(function(){completion('${origin}/i/'+id);}).catch(function(){completion('${origin}/i/'+btoa(unescape(encodeURIComponent(JSON.stringify(d)))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,''));});`;
 }
 
 export default function SettingsPage() {
