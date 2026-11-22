@@ -20,7 +20,9 @@ export default function LoginPage() {
       setBusy(false);
       return;
     }
-    window.location.href = "/plan";
+    // came from the Safari shortcut? continue the import after login
+    const h = window.location.hash;
+    window.location.href = h.startsWith("#page=") ? `/recipes/import${h}` : "/plan";
   }
 
   return (

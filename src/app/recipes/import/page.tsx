@@ -78,15 +78,21 @@ function ImportInner() {
 
   // opened from the Safari share-sheet shortcut with the page content: /recipes/import#page=<base64 json>
   useEffect(() => {
-    const h = window.location.hash;
-    if (!h.startsWith("#page=") || autoRan.current) return;
-    autoRan.current = true;
-    history.replaceState(null, "", window.location.pathname);
-    (async () => {
+    const handle = async () => {
+      const h = window.location.hash;
+      if (!h.startsWith("#page=")) return;
+      history.replaceState(null, "", window.location.pathname);
       setBusy(true);
       setError(null);
+      setDraft(null);
       try {
-        const raw = decodeURIComponent(escape(atob(decodeURIComponent(h.slice(6)).replace(/-/g, "+").replace(/_/g, "/"))));
+        let raw: string;
+        try {
+          const b64 = decodeURIComponent(h.slice(6)).replace(/-/g, "+").replace(/_/g, "/").replace(/\s/g, "+");
+          raw = decodeURIComponent(escape(atob(b64)));
+        } catch {
+          throw new Error("The shortcut sent incomplete data. Update the shortcut script (Settings → Copy shortcut script).");
+        }
         const p = JSON.parse(raw) as { u: string; ld?: string[]; t?: string; i?: string | null };
         setUrl(p.u ?? "");
         const res = await fetch("/api/import", {
@@ -107,7 +113,10 @@ function ImportInner() {
       } finally {
         setBusy(false);
       }
-    })();
+    };
+    handle();
+    window.addEventListener("hashchange", handle);
+    return () => window.removeEventListener("hashchange", handle);
   }, []);
 
   // opened from a link-only shortcut: /recipes/import?url=…
@@ -268,6 +277,11 @@ function ImportInner() {
       )}
 
       <ErrorNote error={error} />
+      {busy && (
+        <p className="mt-4 flex items-center gap-2 rounded-xl bg-herb-soft px-3 py-2 text-sm text-herb">
+          <Spinner className="h-4 w-4" /> Reading the recipe…
+        </p>
+      )}
 
       <button className="btn btn-primary mt-5 w-full py-3" onClick={() => run(mode)} disabled={busy || (mode !== "url" && ai === false)}>
         {busy ? (

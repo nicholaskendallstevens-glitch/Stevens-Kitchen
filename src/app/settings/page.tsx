@@ -9,10 +9,12 @@ import { ErrorNote, Header, Loading, Page, Stepper, Toast } from "@/components/u
 import { IconChevronDown, IconChevronUp, IconX } from "@/components/icons";
 
 function shortcutScript(origin: string) {
-  return `var ld = Array.from(document.querySelectorAll('script[type="application/ld+json"]')).map(function (s) { return s.textContent; }).filter(function (x) { return x.indexOf('Recipe') > -1; });
-var m = document.querySelector('meta[property="og:image"]');
-var d = { u: location.href.split('#')[0], ld: ld, t: ld.length ? '' : document.body.innerText.slice(0, 15000), i: m ? m.content : null };
-completion('${origin}/recipes/import#page=' + btoa(unescape(encodeURIComponent(JSON.stringify(d)))));`;
+  return `function f(o){if(!o||typeof o!=='object')return null;if(Array.isArray(o)){for(var i=0;i<o.length;i++){var r=f(o[i]);if(r)return r;}return null;}var t=o['@type'];if(t==='Recipe'||(Array.isArray(t)&&t.indexOf('Recipe')>-1))return o;return f(o['@graph'])||f(o.mainEntity);}
+var rec=null;document.querySelectorAll('script[type="application/ld+json"]').forEach(function(s){if(!rec){try{rec=f(JSON.parse(s.textContent));}catch(e){}}});
+if(rec){['review','aggregateRating','video','author','nutrition','publisher','comment'].forEach(function(k){delete rec[k];});}
+var m=document.querySelector('meta[property="og:image"]');
+var d={u:location.href.split('#')[0],ld:rec?[JSON.stringify(rec)]:[],t:rec?'':document.body.innerText.slice(0,8000),i:m?m.content:null};
+completion('${origin}/recipes/import#page='+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(d))))));`;
 }
 
 export default function SettingsPage() {
