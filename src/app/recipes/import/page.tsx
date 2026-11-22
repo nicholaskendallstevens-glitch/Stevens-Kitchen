@@ -79,8 +79,11 @@ function ImportInner() {
   // opened from the Safari share-sheet shortcut with the page content: /recipes/import#page=<base64 json>
   useEffect(() => {
     const handle = async () => {
-      const h = window.location.hash;
-      if (!h.startsWith("#page=")) return;
+      // payload arrives as ?page=… (preferred) or #page=… (older shortcut script)
+      const q = new URLSearchParams(window.location.search).get("page");
+      const h = window.location.hash.startsWith("#page=") ? window.location.hash.slice(6) : null;
+      const payload = q ?? (h ? decodeURIComponent(h) : null);
+      if (!payload) return;
       history.replaceState(null, "", window.location.pathname);
       setBusy(true);
       setError(null);
@@ -88,7 +91,7 @@ function ImportInner() {
       try {
         let raw: string;
         try {
-          const b64 = decodeURIComponent(h.slice(6)).replace(/-/g, "+").replace(/_/g, "/").replace(/\s/g, "+");
+          const b64 = payload.replace(/-/g, "+").replace(/_/g, "/").replace(/\s/g, "+");
           raw = decodeURIComponent(escape(atob(b64)));
         } catch {
           throw new Error("The shortcut sent incomplete data. Update the shortcut script (Settings → Copy shortcut script).");

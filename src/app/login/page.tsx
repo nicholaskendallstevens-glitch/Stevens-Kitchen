@@ -22,7 +22,12 @@ export default function LoginPage() {
     }
     // came from the Safari shortcut? continue the import after login
     const h = window.location.hash;
-    window.location.href = h.startsWith("#page=") ? `/recipes/import${h}` : "/plan";
+    const q = new URLSearchParams(window.location.search).get("page");
+    window.location.href = q
+      ? `/recipes/import?page=${encodeURIComponent(q)}`
+      : h.startsWith("#page=")
+        ? `/recipes/import${h}`
+        : "/plan";
   }
 
   return (
