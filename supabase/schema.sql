@@ -189,3 +189,26 @@ drop policy if exists stash_read on public.import_stash;
 create policy stash_read on public.import_stash for select to authenticated using (true);
 drop policy if exists stash_delete on public.import_stash;
 create policy stash_delete on public.import_stash for delete to authenticated using (true);
+
+-- ---------------------------------------------------------------------------
+-- Weekly recipe ideas from the web (Discover tab)
+-- ---------------------------------------------------------------------------
+create table if not exists public.suggestions (
+  id          uuid primary key default gen_random_uuid(),
+  week_start  date not null,
+  title       text not null,
+  url         text not null,
+  source      text,
+  why         text,
+  minutes     int,
+  tags        text[] not null default '{}',
+  image_url   text,
+  status      text not null default 'new' check (status in ('new','saved','dismissed')),
+  recipe_id   uuid references public.recipes(id) on delete set null,
+  created_at  timestamptz not null default now()
+);
+create index if not exists suggestions_week_idx on public.suggestions (week_start);
+alter table public.suggestions enable row level security;
+grant select, insert, update, delete on public.suggestions to authenticated;
+drop policy if exists household_all on public.suggestions;
+create policy household_all on public.suggestions for all to authenticated using (true) with check (true);

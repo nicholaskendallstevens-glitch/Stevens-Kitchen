@@ -8,7 +8,8 @@ import { nameKey } from "@/lib/categories";
 import { getOverrides, setOverride, uploadRecipeImage } from "@/lib/db";
 import { resizeImage } from "@/lib/image";
 import { ErrorNote, RecipeThumb, Spinner, Stepper } from "./ui";
-import { IconCamera } from "./icons";
+import { IconCamera, IconPlus, IconX } from "./icons";
+import { supabase } from "@/lib/supabase/client";
 
 const SUGGESTED_TAGS = ["quick", "vegetarian", "vegan", "kid-friendly", "pasta", "soup", "salad", "meat", "fish", "baking", "dessert", "batch-cook", "summer", "winter", "swiss"];
 
@@ -39,7 +40,9 @@ export function RecipeEditor({
   const [d, setD] = useState<RecipeDraft>(initial);
   const [ingText, setIngText] = useState(() => ingredientsToText(initial.ingredients));
   const [stepsText, setStepsText] = useState(() => initial.steps.join("\n"));
-  const [tagsText, setTagsText] = useState(() => initial.tags.join(", "));
+  const [tags, setTags] = useState<string[]>(() => [...new Set(initial.tags.map((t) => t.trim().toLowerCase()).filter(Boolean))]);
+  const [knownTags, setKnownTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState<string | null>(null);
   const [catEdits, setCatEdits] = useState<Record<string, Category>>(() =>
     Object.fromEntries(initial.ingredients.map((i) => [nameKey(i.name), i.category])),
   );
@@ -51,6 +54,15 @@ export function RecipeEditor({
 
   useEffect(() => {
     getOverrides().then(setOverrides).catch(() => {});
+    // tags you already use elsewhere, most used first
+    supabase()
+      .from("recipes")
+      .select("tags")
+      .then(({ data }) => {
+        const count: Record<string, number> = {};
+        for (const r of data ?? []) for (const t of (r.tags as string[]) ?? []) count[t] = (count[t] ?? 0) + 1;
+        setKnownTags(Object.entries(count).sort((a, b) => b[1] - a[1]).map(([t]) => t));
+      });
   }, []);
 
   const parsed = useMemo(() => {
@@ -82,7 +94,6 @@ export function RecipeEditor({
     setBusy(true);
     setError(null);
     try {
-      const tags = [...new Set(tagsText.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean))];
       const steps = stepsText.split(/\n+/).map((s) => s.trim()).filter(Boolean);
       // remember category changes so the shopping list learns them
       const changed = parsed.filter((i) => catEdits[nameKey(i.name)] && overrides[nameKey(i.name)] !== i.category);
@@ -95,11 +106,13 @@ export function RecipeEditor({
     }
   }
 
-  const toggleTag = (t: string) => {
-    const list = tagsText.split(",").map((x) => x.trim()).filter(Boolean);
-    setTagsText((list.includes(t) ? list.filter((x) => x !== t) : [...list, t]).join(", "));
+  const toggleTag = (t: string) => setTags((p) => (p.includes(t) ? p.filter((x) => x !== t) : [...p, t]));
+  const addTag = () => {
+    const t = (newTag ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+    if (t && !tags.includes(t)) setTags((p) => [...p, t]);
+    setNewTag(null);
   };
-  const currentTags = tagsText.split(",").map((x) => x.trim().toLowerCase());
+  const otherTags = [...new Set([...knownTags, ...SUGGESTED_TAGS])].filter((t) => !tags.includes(t));
 
   return (
     <div className="space-y-5">
@@ -178,14 +191,45 @@ export function RecipeEditor({
 
       <section className="space-y-2">
         <h3 className="font-display text-lg font-semibold">Tags</h3>
-        <input className="field" placeholder="quick, vegetarian, …" value={tagsText} onChange={(e) => setTagsText(e.target.value)} />
+        <p className="text-xs text-muted">Tap a tag to add or remove it.</p>
         <div className="flex flex-wrap gap-1.5">
-          {SUGGESTED_TAGS.map((t) => (
-            <button key={t} type="button" className="chip text-xs" data-on={currentTags.includes(t)} onClick={() => toggleTag(t)}>
-              {t}
+          {tags.map((t) => (
+            <button key={t} type="button" className="chip text-xs" data-on onClick={() => toggleTag(t)} aria-label={`Remove ${t}`}>
+              {t} <IconX size={12} />
             </button>
           ))}
+          {newTag === null ? (
+            <button type="button" className="chip border-dashed text-xs text-herb" onClick={() => setNewTag("")}>
+              <IconPlus size={12} /> New tag
+            </button>
+          ) : (
+            <input
+              autoFocus
+              className="chip w-36 text-xs outline-none"
+              placeholder="e.g. asian"
+              value={newTag}
+              onChange={(e) => setNewTag(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addTag();
+                }
+                if (e.key === "Escape") setNewTag(null);
+              }}
+              onBlur={addTag}
+              enterKeyHint="done"
+            />
+          )}
         </div>
+        {otherTags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {otherTags.map((t) => (
+              <button key={t} type="button" className="chip text-xs text-muted" onClick={() => toggleTag(t)}>
+                <IconPlus size={11} /> {t}
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="space-y-2">

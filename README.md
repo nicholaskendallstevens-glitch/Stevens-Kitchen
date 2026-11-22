@@ -12,6 +12,7 @@ Next.js (PWA) auf Vercel, Daten in Supabase, optional Claude für Foto-/Text-Imp
 | **Schweizer Einheiten** | g/kg, ml/dl/l, TL/EL. Cups/oz/lb/pints werden umgerechnet (Mehl, Zucker usw. in Gramm), °F und UK-„gas mark“ → °C in den Arbeitsschritten |
 | **Wochenplan** | Mo–So, Mittag/Abend, Portionen pro Mahlzeit, Freitext („Reste“, „Auswärts“), „Dinners vorschlagen“ (Favoriten, die ihr länger nicht gekocht habt), „Letzte Woche kopieren“, verschieben, als gekocht markieren. Sonntags öffnet die App automatisch die kommende Woche |
 | **Einkaufsliste** | Pro Woche statt pro Rezept: skaliert auf die geplanten Portionen, fasst gleiche Zutaten zusammen (Zwiebel + Zwiebeln, 2 dl + 150 ml = 3.5 dl), sortiert nach Gängen für **Migros, Coop, Lidl, Aldi, Denner** (Reihenfolge anpassbar), Vorrat („Salz, Öl…“) separat eingeklappt, eigene Artikel („2 l Milch“, „Windeln“), Live-Abgleich zwischen beiden Handys, offline lesbar, per WhatsApp teilen. Wird ein Artikel einem anderen Gang zugeordnet, merkt sich die App das |
+| **Discover** | Jede Woche ~8 neue, trendige und einfache Rezeptideen aus dem Web (Claude-Websuche, ca. 5–10 Rappen pro Woche), mit Ein-Tipp-Import. Bereits gespeicherte oder früher vorgeschlagene Rezepte werden nicht wiederholt |
 | **Kochmodus** | Bildschirm bleibt an, grosse Schritte, Timer werden aus dem Text erkannt („10 Minuten“), Zutaten skaliert |
 | **Sonstiges** | Verlauf („3× gekocht, zuletzt vor 12 Tagen“), Sortierung „länger nicht gekocht“, Backup als JSON, Dark Mode |
 

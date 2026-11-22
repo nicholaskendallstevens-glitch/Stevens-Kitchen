@@ -144,3 +144,18 @@ export const CATEGORY_EMOJI: Record<Category, string> = {
   baby: "🍼",
   other: "🛒",
 };
+
+export interface Suggestion {
+  id: string;
+  week_start: string;
+  title: string;
+  url: string;
+  source: string | null;
+  why: string | null;
+  minutes: number | null;
+  tags: string[];
+  image_url: string | null;
+  status: "new" | "saved" | "dismissed";
+  recipe_id: string | null;
+  created_at: string;
+}

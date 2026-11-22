@@ -2,7 +2,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { IconBook, IconCalendar, IconCart, IconGear, IconMinus, IconPlus, IconX } from "./icons";
+import { IconBook, IconCalendar, IconCart, IconCompass, IconGear, IconMinus, IconPlus, IconX } from "./icons";
 
 /* ---------------------------------- shell --------------------------------- */
 
@@ -10,6 +10,7 @@ const TABS = [
   { href: "/plan", label: "Plan", Icon: IconCalendar },
   { href: "/recipes", label: "Recipes", Icon: IconBook },
   { href: "/list", label: "List", Icon: IconCart },
+  { href: "/discover", label: "Discover", Icon: IconCompass },
   { href: "/settings", label: "Settings", Icon: IconGear },
 ];
 

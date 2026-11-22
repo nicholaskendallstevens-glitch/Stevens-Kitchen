@@ -167,6 +167,8 @@ function ImportInner() {
           onCancel={() => setDraft(null)}
           onSave={async (d) => {
             const r = await createRecipe(d);
+            const sug = params.get("sug");
+            if (sug) await supabase().from("suggestions").update({ status: "saved", recipe_id: r.id }).eq("id", sug);
             router.replace(`/recipes/${r.id}`);
           }}
         />
