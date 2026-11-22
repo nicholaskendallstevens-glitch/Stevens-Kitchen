@@ -63,7 +63,24 @@ function collectUrls(blocks: Block[], into: Set<string>) {
   }
 }
 
-export async function findSuggestions(opts: { count: number; avoid: string[]; month: string }): Promise<FoundSuggestion[]> {
+const THEMES = [
+  "one-pot and sheet-pan dinners", "vegetarian and veggie-forward dinners", "Asian-inspired weeknight dishes",
+  "soups and stews", "pasta and noodle dishes", "chicken dinners", "fish and seafood", "family-friendly dinners kids like",
+  "Swiss and Alpine classics", "Mediterranean and Middle Eastern dishes", "Mexican-inspired dinners", "Indian curries",
+  "salads and bowls that are filling", "budget-friendly dinners", "comfort food", "15-20 minute dinners",
+];
+
+export function pickThemes(n: number): string[] {
+  return [...THEMES].sort(() => Math.random() - 0.5).slice(0, n);
+}
+
+export async function findSuggestions(opts: {
+  count: number;
+  avoid: string[];
+  avoidUrls?: string[];
+  month: string;
+  themes?: string[];
+}): Promise<FoundSuggestion[]> {
   const model = process.env.ANTHROPIC_MODEL || "claude-haiku-5-5";
   const system =
     "You are the recipe scout for a young family in Zurich, Switzerland (two adults, a toddler, a baby on the way). " +
@@ -77,6 +94,8 @@ export async function findSuggestions(opts: { count: number; avoid: string[]; mo
   const user =
     `It's ${opts.month}. Find ${opts.count} recipe ideas for this week: roughly a third from Swiss sites, the rest international ` +
     `and currently popular/trending. Do not suggest any of these (already known): ${opts.avoid.slice(0, 80).join("; ") || "none"}. ` +
+    (opts.themes?.length ? `This time focus on: ${opts.themes.join(" and ")}. Use different search terms than usual. ` : "") +
+    (opts.avoidUrls?.length ? `These pages were already suggested, do not use them: ${opts.avoidUrls.slice(0, 40).join(" ")}. ` : "") +
     `Search a few times, then call save_suggestions once with the final list.`;
 
   const tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }, SAVE_TOOL];

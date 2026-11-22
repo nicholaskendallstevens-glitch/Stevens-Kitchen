@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/supabase/server";
-import { findSuggestions } from "@/lib/discover";
+import { findSuggestions, pickThemes } from "@/lib/discover";
 import { aiEnabled } from "@/lib/import/claude";
 
 export const runtime = "nodejs";
@@ -28,8 +28,23 @@ export async function POST(req: Request) {
   const month = new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 
   try {
-    const found = (await findSuggestions({ count: 8, avoid, month })).filter((s) => !knownUrls.has(s.url));
-    if (!found.length) return NextResponse.json({ error: "Couldn't find good ideas this time — try again." }, { status: 422 });
+    const norm = (u: string) => u.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "").toLowerCase();
+    const known = new Set([...knownUrls].map((u) => norm(String(u))));
+    const knownTitles = new Set(avoid.map((t) => t.toLowerCase()));
+    const fresh = (list: Awaited<ReturnType<typeof findSuggestions>>) =>
+      list.filter((s) => !known.has(norm(s.url)) && !knownTitles.has(s.title.toLowerCase()));
+    const avoidUrls = [...knownUrls].map(String);
+
+    // "more": search in new directions so we don't just find last time's results again
+    const t0 = Date.now();
+    let found = fresh(await findSuggestions({ count: 8, avoid, avoidUrls, month, themes: more ? pickThemes(2) : undefined }));
+    // second attempt only if there's time left (Vercel stops functions after 60 s)
+    if (found.length < 3 && more && Date.now() - t0 < 22000) {
+      found = [...found, ...fresh(await findSuggestions({ count: 6, avoid, avoidUrls, month, themes: pickThemes(2) }))];
+    }
+    // de-duplicate within this batch
+    found = found.filter((s, i) => found.findIndex((x) => norm(x.url) === norm(s.url)) === i);
+    if (!found.length) return NextResponse.json({ error: "Only found ideas you already have — try again in a moment." }, { status: 422 });
     const { error } = await sb.from("suggestions").insert(found.map((s) => ({ ...s, week_start: week })));
     if (error) throw new Error(error.message);
     return NextResponse.json({ added: found.length });
