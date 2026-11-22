@@ -32,7 +32,9 @@ const BROWSERS: Record<string, string>[] = [
 async function fetchPage(url: string): Promise<string> {
   let status = 0;
   for (const b of BROWSERS) {
-    const res = await fetch(url, {
+    let res: Response;
+    try {
+      res = await fetch(url, {
       headers: {
         ...b,
         accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
@@ -46,7 +48,12 @@ async function fetchPage(url: string): Promise<string> {
       },
       redirect: "follow",
       signal: AbortSignal.timeout(15000),
-    });
+      });
+    } catch {
+      // connection dropped / timed out — typical for bot protection
+      status = 403;
+      continue;
+    }
     if (res.ok) return await res.text();
     status = res.status;
     if (![403, 406, 429, 503].includes(status)) break;
