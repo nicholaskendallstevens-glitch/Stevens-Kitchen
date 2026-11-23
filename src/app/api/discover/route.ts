@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     const t0 = Date.now();
     let found = fresh(await findSuggestions({ count: 8, avoid, avoidUrls, month, themes: more ? pickThemes(2) : undefined }));
     // second attempt only if there's time left (Vercel stops functions after 60 s)
-    if (found.length < 3 && more && Date.now() - t0 < 22000) {
+    if (found.length < 5 && Date.now() - t0 < 25000) {
       found = [...found, ...fresh(await findSuggestions({ count: 6, avoid, avoidUrls, month, themes: pickThemes(2) }))];
     }
     // de-duplicate within this batch

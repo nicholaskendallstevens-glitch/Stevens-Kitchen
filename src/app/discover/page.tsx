@@ -95,7 +95,7 @@ export default function DiscoverPage() {
           </>
         }
       />
-      <p className="-mt-2 mb-4 text-sm text-muted">Fresh, trending and easy dinner ideas from the web — new every week.</p>
+      <p className="-mt-2 mb-4 text-sm text-muted">Modern, healthy and easy dinner ideas — new every week.</p>
 
       <ErrorNote error={error} />
 

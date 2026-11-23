@@ -63,11 +63,16 @@ function collectUrls(blocks: Block[], into: Set<string>) {
   }
 }
 
+// Sites to scout. Override in Vercel with DISCOVER_SOURCES="site1.com,site2.com"
+export function discoverSources(): string[] {
+  const env = (process.env.DISCOVER_SOURCES ?? "").split(",").map((x) => x.trim().replace(/^https?:\/\/(www\.)?/, "").replace(/\/.*$/, "")).filter(Boolean);
+  return env.length ? env : ["pinchofyum.com", "loveandlemons.com"];
+}
+
 const THEMES = [
-  "one-pot and sheet-pan dinners", "vegetarian and veggie-forward dinners", "Asian-inspired weeknight dishes",
-  "soups and stews", "pasta and noodle dishes", "chicken dinners", "fish and seafood", "family-friendly dinners kids like",
-  "Swiss and Alpine classics", "Mediterranean and Middle Eastern dishes", "Mexican-inspired dinners", "Indian curries",
-  "salads and bowls that are filling", "budget-friendly dinners", "comfort food", "15-20 minute dinners",
+  "sheet-pan dinners", "vegetarian and vegan bowls", "Asian-inspired weeknight dishes", "brothy soups",
+  "noodle dishes", "chicken dinners", "salmon and fish", "tofu and tempeh", "Mediterranean and Middle Eastern dishes",
+  "Mexican-inspired dinners", "curries", "grain bowls and hearty salads", "15-20 minute dinners", "meal-prep friendly dinners",
 ];
 
 export function pickThemes(n: number): string[] {
@@ -82,23 +87,24 @@ export async function findSuggestions(opts: {
   themes?: string[];
 }): Promise<FoundSuggestion[]> {
   const model = process.env.ANTHROPIC_MODEL || "claude-haiku-5-5";
+  const sources = discoverSources();
   const system =
-    "You are the recipe scout for a young family in Zurich, Switzerland (two adults, a toddler, a baby on the way). " +
-    "Every week you find new dinner ideas that are currently trending or seasonal AND realistically easy on a weeknight: " +
-    "about 45 minutes or less, roughly 12 ingredients or fewer, everything available at Migros, Coop or Lidl. " +
-    "Use web search to find real recipe pages. Only return URLs that appeared in your search results and point directly " +
-    "to a single recipe (not a list/roundup or category page). Prefer sites with good recipe pages: fooby.ch, swissmilk.ch, " +
-    "bettybossi.ch, migusto.migros.ch, bbcgoodfood.com, recipetineats.com, bonappetit.com, seriouseats.com, " +
-    "budgetbytes.com, delicious.com.au, jamieoliver.com, ottolenghi.co.uk. Mix cuisines and proteins, include vegetarian options. " +
-    "Avoid paywalled sites (e.g. NYT Cooking).";
+    "You are the recipe scout for a young, health-conscious couple in Zurich. Every week you pick modern, currently hyped " +
+    "dinner recipes that are genuinely healthy and easy on a weeknight (about 45 minutes or less, common ingredients). " +
+    "Healthy means: vegetable-forward, lean proteins (chicken, fish, seafood, tofu, tempeh, eggs, beans, lentils), whole grains, " +
+    "bright flavours (herbs, citrus, miso, gochujang, chili crisp, tahini, ginger). Avoid dishes built on cheese, cream, butter, " +
+    "bacon, sausage or fatty red meat, and avoid deep-fried food and desserts. " +
+    `Only use recipes from these sites: ${sources.join(", ")}. Only return URLs that appeared in your search results and point ` +
+    "directly to a single recipe (not a roundup, collection or category page).";
   const user =
-    `It's ${opts.month}. Find ${opts.count} recipe ideas for this week: roughly a third from Swiss sites, the rest international ` +
-    `and currently popular/trending. Do not suggest any of these (already known): ${opts.avoid.slice(0, 80).join("; ") || "none"}. ` +
+    `It's ${opts.month}. Find ${opts.count} recipes for this week that are trending or newly popular right now. ` +
+    `Mix proteins and cuisines, include at least two vegetarian ones. ` +
+    `Do not suggest any of these (already known): ${opts.avoid.slice(0, 80).join("; ") || "none"}. ` +
     (opts.themes?.length ? `This time focus on: ${opts.themes.join(" and ")}. Use different search terms than usual. ` : "") +
     (opts.avoidUrls?.length ? `These pages were already suggested, do not use them: ${opts.avoidUrls.slice(0, 40).join(" ")}. ` : "") +
-    `Search a few times, then call save_suggestions once with the final list.`;
+    `Search several times (e.g. "new recipes", "most popular", seasonal), then call save_suggestions once with the final list.`;
 
-  const tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }, SAVE_TOOL];
+  const tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 5, allowed_domains: sources }, SAVE_TOOL];
   const messages: { role: string; content: unknown }[] = [{ role: "user", content: user }];
   const seen = new Set<string>();
 
