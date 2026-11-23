@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { APP_NAME } from "@/lib/config";
+import { AutoUpdate } from "@/components/AutoUpdate";
 
 export const metadata: Metadata = {
   title: APP_NAME,
@@ -27,7 +28,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-dvh">{children}</body>
+      <body className="min-h-dvh">
+        <AutoUpdate />
+        {children}
+      </body>
     </html>
   );
 }
